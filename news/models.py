@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 from __future__ import unicode_literals
 
-from django.contrib.sitemaps import ping_google
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
@@ -25,8 +24,8 @@ class Column(models.Model):
         return reverse('column',args=(self.slug,))
 
     class Meta:
-        verbose_name = '栏目'
-        verbose_name_plural = '栏目'
+        verbose_name = '新闻分组'
+        verbose_name_plural = '新闻分组'
         ordering = ['name'] #按照哪个栏目排序
 
 @python_2_unicode_compatible
@@ -53,20 +52,9 @@ class Article(models.Model):
     def get_absolute_url(self):
         return reverse('article',args=(self.pk,self.slug,))
 
-        # ...
-
-    def save(self, *args, **kwargs):
-        super(Article, self).save(*args, **kwargs)
-        try:
-            ping_google()
-        except Exception:
-            # Bare 'except' because we could get a variety
-            # of HTTP-related exceptions.
-            pass
-
     class Meta:
-        verbose_name = '教程'
-        verbose_name_plural = '教程'
+        verbose_name = '新闻文章'
+        verbose_name_plural = '新闻文章'
 
 
 

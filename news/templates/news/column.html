@@ -5,9 +5,9 @@
 {% endblock title %}
  
 {% block content %}
-<p>栏目名称：{{column.name}}</p>
-栏目简介：{{ column.intro }}
-栏目文章列表：
+<p>{{column.name}}</p>
+<p>简介：{{ column.intro }}</p>
+<p>列表：</p>
 <ul>
     {% for article in column.article_set.all %}
     <li>

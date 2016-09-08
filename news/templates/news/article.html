@@ -1,13 +1,18 @@
 {% extends "base.html" %}
- 
 {% block title %}
 {{ article.title }}
 {% endblock title %}
- 
- 
 {% block content %}
-<h1>文章标题： {{ article.title }}</h1>
-<div id="main">
-    {{ article.content }}
+
+<h1 align="center">{{ article.title }}</h1>
+<div style="padding: 20px" align="left">
+    <p>
+        {{ article.content }}
+    </p>
+</div>
+<div style="margin-right: 20px" id="author" align="right">
+    <p>
+        <font color="#deb887">{{ article.author }}</font>
+    </p>
 </div>
 {% endblock content %}
