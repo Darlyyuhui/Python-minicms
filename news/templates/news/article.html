@@ -5,14 +5,19 @@
 {% block content %}
 
 <h1 align="center">{{ article.title }}</h1>
-<div style="padding: 20px" align="left">
+
+<div style="margin-right: 20px" id="author" align="center">
     <p>
-        {{ article.content }}
+        <font color="#deb887">作者：{{ article.author }}&nbsp&nbsp</font>
+        发布时间： {{ article.pub_date}}
     </p>
 </div>
-<div style="margin-right: 20px" id="author" align="right">
-    <p>
-        <font color="#deb887">{{ article.author }}</font>
-    </p>
+ <div style="margin: 20px" align="center">
+     <img src="http://localhost:8000/media/{{article.image}}">
+ </div>
+<div style="width: 80%" align="center">
+    {{ article.content }}
 </div>
+
+
 {% endblock content %}

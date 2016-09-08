@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from __future__ import unicode_literals
 
+import time
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
@@ -40,7 +41,7 @@ class Article(models.Model):
                            default=u'',blank=True,imagePath="uploads/images/",
                            toolbars='besttome',filePath='uploads/files/')
         #models.TextField(u'内容',default='',blank=True)
-
+    image = models.FileField(u'图片路径',upload_to=None, max_length=100)
     published = models.BooleanField(u'正式发布',default=True)
 
     pub_date = models.DateTimeField(u'发表时间',auto_now_add=True,editable=True)
@@ -51,6 +52,9 @@ class Article(models.Model):
 
     def get_absolute_url(self):
         return reverse('article',args=(self.pk,self.slug,))
+
+    def getPub_date(self):
+        return time.strftime("%Y-%m-%d %H:%M:%S",time.mktime(self.pub_date))
 
     class Meta:
         verbose_name = '新闻文章'
