@@ -1,0 +1,994 @@
+2.4 规划 news 中的栏目和每篇文章相关的字段
+栏目：名称，网址，简介等
+文章：标题，作者，网址，内容等
+我们假设一篇文章只有一个作者（文章和作者是多对一的关系），一篇文章可以属于多个栏目（栏目和文章是多对多的关系）
+为了用到更多的情况，我们假设作者可以为空，栏目不能为空。
+开写 models.py
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
+
+
+@python_2_unicode_compatible
+class Column(models.Model):
+    name = models.CharField('栏目名称', max_length=256)
+    slug = models.CharField('栏目网址', max_length=256, db_index=True)
+    intro = models.TextField('栏目简介', default='')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = '栏目'
+        verbose_name_plural = '栏目'
+        ordering = ['name']  # 按照哪个栏目排序
+
+
+@python_2_unicode_compatible
+class Article(models.Model):
+    column = models.ManyToManyField(Column, verbose_name='归属栏目')
+
+    title = models.CharField('标题', max_length=256)
+    slug = models.CharField('网址', max_length=256, db_index=True)
+
+    author = models.ForeignKey('auth.User', blank=True, null=True, verbose_name='作者')
+    content = models.TextField('内容', default='', blank=True)
+
+    published = models.BooleanField('正式发布', default=True)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = '教程'
+        verbose_name_plural = '教程'
+
+2.5 创建数据库
+python manage.py makemigrations news
+python manage.py migrate
+
+2.6 创建完数据库后，用了一段时间，我们发现以前的文章的字段不合理
+
+比如我们想记录文章添加的日期，修改的日期，我们更改 models.py （不变动的大部分省去了，添加两个字段）
+...省略
+class Article(models.Model):
+    ...原来的字段省去
+
+    pub_date = models.DateTimeField('发表时间', auto_now_add=True, editable=True)
+    update_time = models.DateTimeField('更新时间', auto_now=True, null=True)
+
+    ...省略
+
+这时候，我们对 models.py 进行了更改，这些字段数据库中还没有，我们要同步更改到数据库中去：
+python manage.py makemigrations news
+
+You are trying to add a non-nullable field 'pub_date' to article without a default; we can't do that (the database needs something to populate existing rows).
+
+Please select a fix:
+
+ 1) Provide a one-off default now (will be set on all existing rows)
+
+ 2) Quit, and let me add a default in models.py
+
+这段话的意思是 pub_date 字段没有默认值，而且非Null 那么
+
+1) 指定一个一次性的值供更改数据库时使用。
+
+2) 停止当前操作，在 models.py 中给定默认值，然后再来migrate。
+
+我们选择第一个，输入 1
+
+Select an option: 1
+
+Please enter the default value now, as valid Python
+
+The datetime and django.utils.timezone modules are available, so you can do e.g. timezone.now()
+
+>>> timezone.now()
+
+Migrations for 'news':
+
+  0002_auto_20150728_1232.py:
+
+    - Add field pub_date to article
+
+    - Add field update_time to article
+
+这样是生成了一个对表进行更改的 py 文件在 news/migrations 文件夹中，我们要执行更改
+python manage.py migrate 或 python manage.py migrate news
+
+2.7 创建一个脚本，导入一些数据到数据库中
+
+我们导入一些演示数据：
+
+栏目： [<Column: 体育新闻>, <Column: 社会新闻>, <Column: 科技新闻>]
+
+文章：[<Article: 体育新闻_1>, <Article: 体育新闻_2>, <Article: 体育新闻_3>, <Article: 体育新闻_4>, <Article: 体育新闻_5>, <Article: 体育新闻会>, <Article: 体育新闻_7>, <Article: 体育新闻_8>, <Article: 体育新闻_9>, <Article: 体育新闻_10>, <Article: 社会新闻_1>, <Article: 社新闻_2>,'...(remaining elements truncated)...']
+
+
+create_demo_records.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Date    : 2015-07-28 20:38:38
+# @Author  : Weizhong Tu (mail@tuweizhong.com)
+# @Link    : http://www.tuweizhong.com
+
+'''
+create some records for demo database
+'''
+
+from minicms.wsgi import *
+from news.models import Column, Article
+
+
+def main():
+    columns_urls = [
+      ('体育新闻', 'sports'),
+      ('社会新闻', 'society'),
+      ('科技新闻', 'tech'),
+    ]
+
+    for column_name, url in columns_urls:
+        c = Column.objects.get_or_create(name=column_name, slug=url)[0]
+
+        # 创建 10 篇新闻
+        for i in range(1, 11):
+            article = Article.objects.get_or_create(
+                title='{}_{}'.format(column_name, i),
+                slug='article_{}'.format(i),
+                content='新闻详细内容： {} {}'.format(column_name, i)
+            )[0]
+
+            article.column.add(c)
+
+
+if __name__ == '__main__':
+    main()
+    print("Done!")
+
+假设这个文件被保存为 create_demo_records.py （和 manage.py 放在一块，同一个文件夹下）
+
+运行脚本 导入数据：
+python create_demo_records.py
+
+Done!
+
+终端上显示一个  Done!   就这样 Duang 的一下，数据就导进去了！
+Day 2
+
+
+
+
+
+
+
+
+
+2.8 完善后台的功能，在后台添加，编辑，删除数据
+
+更改 news/admin.py
+from django.contrib import admin
+
+from .models import Column, Article
+
+
+class ColumnAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'intro',)
+
+
+class ArticleAdmin(admin.ModelAdmin):
+    list_display = ('title', 'slug', 'author', 'pub_date', 'update_time')
+
+
+admin.site.register(Column, ColumnAdmin)
+admin.site.register(Article, ArticleAdmin)
+
+创建一个超级管理员（如果你没有后台帐户和密码的话）
+python manage.py createsuperuser
+
+这里我们打开开发服务器，访问后台网址，就可以看到：
+python manage.py runserver
+还可以指定端口 python manage.py runserver 8002
+也可以监视所有本机IP, python manage.py runserver 0.0.0.0:8001
+
+后台首页：
+
+
+后台栏目列表：
+
+
+后台文章列表：
+
+
+文章编辑页面：
+
+new_content.png
+
+我们已经可以在后台进行更改和保存文章了，但是在编辑新闻的时候是不是觉得不爽，没有一个编辑器，我们下面来集成百度的Ueditor 到我们的系统：
+
+
+2.8.1 集成 DjangoUeditor 编辑器
+
+安装 DjangoUeditor 包
+
+由于这个包 1.8 有一个bug，已经被我修复了，但是原作者还没有上传到 pypi， 我们直接下载 zip，或者 git clone 下来，
+
+原作者github 地址：https://github.com/zhangfisher/DjangoUeditor    直接下载zip (Python 2)
+
+Python 3 开发者：https://github.com/twz915/DjangoUeditor3   直接下载zip(Python 2/3)
+
+
+把里面的 DjangoUeditor-master 中的 DjangoUeditor 文件夹放到  news 同一级目录，如图所求：
+
+QQ20150729-1@2x.png
+
+
+在 minicms/settings.py 中加入  DjangoUeditor 这个应用
+INSTALLED_APPS = (
+    ...
+
+    'news',
+    'DjangoUeditor',
+)
+
+在 minicms/urls.py 中添加一行：
+    url(r'^ueditor/', include('DjangoUeditor.urls' )),
+
+Django 1.8.3 urls.py 中写了，建议先引入，再使用，即：
+from django.conf.urls import include, url
+from django.contrib import admin
+
+from DjangoUeditor import urls as DjangoUeditor_urls
+
+urlpatterns = [
+    url(r'^admin/', include(admin.site.urls)),
+    url(r'^ueditor/', include(DjangoUeditor_urls)),
+]
+
+但是原来的写法依旧可以使用。
+
+
+这一段是后来加的，github上没有
+
+为了让上传的图片，文件可以在本地调试的时候可以正常显示，下载，
+
+在 minicms/settings.py 设置 static 和 media
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/1.8/howto/static-files/
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# 公共的 static 文件，比如 jquery.js 可以放这里，这里面的文件夹不能包含 STATIC_ROOT
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, "common_static"),
+)
+
+# upload folder
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+在 minicms/urls.py 最后加入以下代码：
+# use Django server /media/ files
+from django.conf import settings
+
+if settings.DEBUG:
+    from django.conf.urls.static import static
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+安装配置好后，修改 models.py
+# 引入这个 Field，其它的不要变
+from DjangoUeditor.models import UEditorField
+
+
+
+class Article(models.Model):
+    ...省略
+
+    #仅修改 content 字段
+    content = UEditorField('内容', height=300, width=1000,
+        default=u'', blank=True, imagePath="uploads/images/",
+        toolbars='besttome', filePath='uploads/files/')
+
+    ...
+
+再次打开，发现，已经可以使用了：
+
+QQ20150729-2@2x.png
+
+后台的功能就讲到这里，大家可以后期自己再进行完善。
+
+
+2.9 前台内容显示
+
+我们在后台可以看到栏目，新闻，但是让用户来看这些内容不能每人给一个后台帐号吧。
+
+我们假设这么设计，首页显示一些栏目，每个栏目显示五篇相关的文章，栏目可以点击进去，文章也可以点击进去。
+
+
+2.9.1 网址与内容如何关联
+
+我们复习一下前面的 models.py
+class Column(models.Model):
+    ...
+    slug = models.CharField('栏目网址', max_length=256, db_index=True)
+    ...
+
+class Article(models.Model):
+    ...
+    slug = models.CharField('网址', max_length=256, db_index=True)
+    ...
+
+前面我们都自定义了文章的网址，假设我们想访问 /column/column_slug/ 访问栏目的内容，访问 /news/article_slug/ 查看文章详情
+
+
+提示：其实这里有个 bug, 不同栏目，不同文章网址可以是一样的，先不管这个，我们稍后会修复它！
+
+
+我们修改 minicms/urls.py 添加上面的规则：
+    url(r'^$', 'news.views.index', name='index'),
+    url(r'^column/(?P<column_slug>[^/]+)/$', 'news.views.column_detail', name='column'),
+    url(r'^news/(?P<article_slug>[^/]+)/$', 'news.views.article_detail', name='article'),
+
+    url(r'^admin/', include(admin.site.urls)),
+
+下面我们来完善这三个视图函数（这里为了告诉大家如何做，我们不用通用视图，因为通用视图都帮大家做好了，学不到什么东西）
+
+首页 index   栏目 column    文章详情   article
+# -*- coding: utf-8 -*-
+from django.shortcuts import render
+from django.http import HttpResponse
+
+
+def index(request):
+    return HttpResponse(u'欢迎来自强学堂学习Django')
+
+
+def column_detail(request, column_slug):
+    return HttpResponse('column slug: ' + column_slug)
+
+
+def article_detail(request, article_slug):
+    return HttpResponse('article slug: ' + article_slug)
+
+上面是一个大致框架，我们马上完善它，大家看一下参数是如何传递的，可以打开开发服务器 python manage.py runserver
+
+访问比如：http://127.0.0.1:8002/column/tech/  （注意端口，改成你自己的）会得到：
+
+QQ20150729-3@2x.png
+
+我们发现 slug 已经被正确传递到了 views.py 中的视图函数，我们在 views.py 中可以用 slug 检索出相应的栏目或文章。
+
+至此，我们已经知道栏目网址和文章网址的规则，我们现在用代码来生成相关的网址，我们运行 python manage.py shell 进入有项目环境的终端
+python manage.py shell
+
+相当于下面两句：
+python
+from minicms.wsgi import *
+
+我们知道 slug 后，就能得到相应的网址：
+>>> from django.core.urlresolvers import reverse
+>>>
+>>> # column
+>>> reverse('column', args=('tech',))
+u'/column/tech/'
+>>> reverse('column', args=('sports',))
+u'/column/sports/'
+>>>
+>>> # article
+>>> reverse('article', args=('article_slug',))
+u'/news/article_slug/'
+>>> reverse('article', args=('windows_10',))
+u'/news/windows_10/'
+>>>
+
+我们修改 models.py ，将获取网址的功能写成一个函数 get_absolute_url ，然后在模板或其它脚本中调用。
+
+后台默认也会调用这个函数，可以理解成一个约定俗成的名称。
+from django.core.urlresolvers import reverse
+
+...
+
+class Column(models.Model):
+    ...
+    slug = models.CharField('栏目网址', max_length=256, db_index=True)
+    ...
+
+    def get_absolute_url(self):
+        return reverse('column', args=(self.slug,))
+...
+
+
+class Article(models.Model):
+    ...
+    slug = models.CharField('网址', max_length=256, db_index=True)
+    ...
+    def get_absolute_url(self):
+        return reverse('article', args=(self.slug,))
+...
+
+注意 args 参数为元组，写 args=(self.slug) 这样是错的，注意后面有一个逗号 args=(self.slug,)
+
+我们再次进入 终端 python manage.py shell
+>>> from news.models import Column, Article
+
+>>> c = Column.objects.all()[0]
+>>> c.get_absolute_url()
+u'/column/sports/'
+
+>>> a = Article.objects.all()[0]
+>>> a.get_absolute_url()
+u'/news/article_1/'
+
+我们可以看到这样已经可以获取到文章或者栏目的网址了，下面我们在模板中显示它们。
+
+
+2.9.2 相关模板文件
+
+我们先写一个 base.html 所有的其它模板都继承它，由于 base.html 不属于某一个 app，它是整个项目共用的，我们建立一个专门的 模块文件夹来放它样的文件。
+
+比如还有其它的 baidutongji.html ，把百度统计的代码放进去来统计访问情况。
+
+我们修改 settings.py，添加一个模板目录 项目下 templates 文件夹。
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')], #修改了这一行
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+项目目录下 建一个 templates 文件夹，里面写一个 base.html
+
+templates/base.html 模板文件
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}欢迎光临{% endblock title %} - 自强学堂</title>
+
+    {% block css %}
+
+    {% endblock css %}
+
+    {% block js %}
+
+    {% endblock js %}
+  </head>
+  <body>
+    {% block content %}
+        <h1>自强 新闻网</h1>
+    {% endblock content %}
+
+    {% include "baidutongji.html" %}
+  </body>
+</html>
+
+上面这样写是为了足够简单，喜欢 BootStrap 的同学可以用这个 base.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,Chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}欢迎光临{% endblock title %} - 自强学堂</title>
+
+    <!-- Bootstrap -->
+    <link href="http://apps.bdimg.com/libs/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- 引入下面两个库让 IE8 支持 HTML5 元素 -->
+    <!-- 警告: Respond.js 通过 file:// 浏览的时候不能正常工作！-->
+    <!--[if lt IE 9]>
+      <script src="http://apps.bdimg.com/libs/html5shiv/3.7/html5shiv.min.js"></script>
+      <script src="http://apps.bdimg.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    {% block css %}
+
+    {% endblock css %}
+
+    {% block js %}
+
+    {% endblock js %}
+  </head>
+  <body>
+    <div>
+        <div>
+            {% block content %}
+            <h1>自强 新闻网</h1>
+            {% endblock content %}
+        </div>
+    </div>
+
+    <script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://apps.bdimg.com/libs/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+    {% include "baidutongji.html" %}
+  </body>
+</html>
+
+templates/baidutongji.html
+<!-- 这里放统计的代码 -->
+
+<!-- 百度统计 begin-->
+<div style="display:none" hidden>
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Fab8b04b0bf640ac196520db1cd029664' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</div>
+<!-- 百度统计 end-->
+
+2.9.3 视图中检索结果，渲染到模板中显示出来
+
+我们改写视图函数，查询数据库，得到相关的内容：
+def column_detail(request, column_slug):
+    column = Column.objects.get(slug=column_slug)
+    return render(request, 'news/column.html', {'column': column})
+
+
+def article_detail(request, article_slug):
+    article = Article.objects.get(slug=article_slug)
+    return render(request, 'news/article.html', {'article': article})
+
+在 news 下新建 templates 文件夹，再在 templates 下新建 news 文件夹，我们来写两个模板文件：
+
+栏目模板，视图传递过来了一个 column object
+
+news/templates/news/column.html （或者 项目下的 templates/news/column.html 路径）Django 都能找到它们
+{% extends "base.html" %}
+
+{% block title %}
+{{ column.title }}
+{% endblock title %}
+
+{% block content %}
+栏目简介：{{ column.intro }}
+栏目文章列表：
+还需要完善
+{% endblock content %}
+
+
+文章模板，视图传递过来了一个 article object
+
+news/templates/news/article.html （或者 项目下的 templates/news/article.html）
+{% extends "base.html" %}
+
+{% block title %}
+{{ article.title }}
+{% endblock title %}
+
+
+{% block content %}
+<h1>文章标题： {{ article.title }}</h1>
+<div id="main">
+    {{ article.content }}
+</div>
+{% endblock content %}
+
+
+我们先在首页显示所有栏目及链接：
+
+news/views.py
+def index(request):
+    columns = Column.objects.all()
+    return render(request, 'index.html', {'columns': columns})
+
+
+项目下 templates/index.html
+{% extends "base.html" %}
+
+{% block title %} 首页 {% endblock title %}
+
+
+{% block content %}
+<ul>
+    {% for column in  columns %}
+        <li>
+            <a href="{{ column.get_absolute_url }}"> {{ column.name }} </a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock content %}
+
+我们打开开发服务器（开发服务器可以一直开着，会自动刷新），查看首页：
+
+QQ20150729-4@2x.png
+
+首页已经可以显示所有栏目了，但是栏目页我们还没有完善，如果获取栏目相关的文章呢？
+
+我们再次在终端测试，安装 bpython，会提示相关的属性和方法
+python manage.py shell
+
+下面是测试结果：
+>>> from news.models import Column
+>>> c = Column.objects.all()[0]
+>>> c
+<Column: 体育新闻>
+
+>>> c.article_set.all()
+[<Article: 体育新闻_1>, <Article: 体育新闻_2>, <Article: 体育新闻_3>, <Article: 体育
+新闻_4>, <Article: 体育新闻_5>, <Article: 体育新闻_6>, <Article: 体育新闻_7>, <Artic
+le: 体育新闻_8>, <Article: 体育新闻_9>, <Article: 体育新闻_10>]
+
+我们发现用 column.article_set.all() 方法可以获取栏目相关的文章。
+
+我们改一下 news/templates/news/column.html
+{% extends "base.html" %}
+
+{% block title %}
+{{ column.title }}
+{% endblock title %}
+
+
+{% block content %}
+<p>栏目名称：{{ column.name }}</p>
+栏目简介：{{ column.intro }}
+栏目文章列表：
+<ul>
+    {% for article in column.article_set.all %}
+        <li>
+            <a href="{{ article.get_absolute_url }}">{{ article.title }}</a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock content %}
+
+我们再次访问开发服务器，会发现，栏目已经可以显示相关的文章了：
+
+QQ20150729-6@2x.png
+
+但是由于我们前期写的时候的一个 bug，多篇文章可以共用一个网址，所以每个文章的 slug 都有三个与之对应的文章，【临时办法】如果想要看到文章的内容页，我们改一下视图函数，有多个时，显示第一篇（这样做有问题，后面完善）
+def article_detail(request, article_slug):
+    article = Article.objects.filter(slug=article_slug)[0]
+    return render(request, 'news/article.html', {'article': article})
+
+我们再点击文章的名称，就可以看到：
+
+QQ20150729-7@2x.png
+
+至此代码下载：zip下载   github 地址
+
+今天就写到这里，我们明天再修复这个 bug，有能力的同学可以自己想想办法修复这样问题。
+
+
+
+
+
+内容管理系统开发（第三天）
+
+2.9 修复文章slug的 Bug
+
+我们再来回顾一下以前的设计，每篇文章都有一个slug，这样当我们写文章的时候，slug重复会出现问题，我们可以修改成不允许重复：
+class Article(models.Model):
+    ...
+    slug = models.CharField('网址', max_length=256, unique=True)
+
+我们接着看，不要同步更改到数据库，我们加入了 unique = True, 不允许有同样值的记录存在，同时也删除了 db_index=True, 因为当 unique=True的时候会自动创索引。但是这样做不是很好，有时候我们不想输入一些文章的 slug，或者太多文章了没注意写成了一样的了呢？这样的设计是有问题的。
+
+下面是我在 StackOverflow 上回答的一个问题，大家注意一下网址：
+
+http://stackoverflow.com/questions/30295171/django-listfield-with-add-and-remove/30295614#30295614
+
+大家很容易发现，网址为:
+
+域名，类别，编号，问题标题 这四部分组成，提问的人可以写同样的标题，但是不会出问题，关键就是 编号 不同
+
+
+我们就采用这种编号的格式，默认地，Django会为每一个 Model 建一个名称为 id 的主键(详情)：
+class Article(models.Model):
+    # id 这个是默认有的，也可以自己定义一个其它的主键来覆盖它
+    #id = models.AutoField(primary_key=True)
+    ...
+
+我们就利用默认的 id 字段，下面来修改以前的文件，来采用新的，更合理的网址形式。
+
+minicms/urls.py
+    url(r'^news/(?P<pk>\d+)/(?P<article_slug>[^/]+)/$', 'news.views.article_detail', name='article'),
+
+pk 是Primary Key 主键的意思，这里等价于 id，但是 id 是 Python 中的一个内置函数，所以我更喜欢用 pk
+
+
+news/views.py
+def article_detail(request, pk, article_slug):
+    article = Article.objects.get(pk=pk)
+    return render(request, 'news/article.html', {'article': article})
+
+我们不使用 article_slug 就可以获取到网址了，是不是，的确是这样的，那 article_slug 有什么用呢？
+
+想一想一篇文章的网址你很可能会修改它，当你再次修改的时候，可能搜索引擎已经收录了，或者其它人已经收藏到了书签中，这样，原来的网址和新的网址都是可以访问网站的！
+
+搜索引擎会发现你多个网址对应到不同的内容，这样不是很好，怎么办呢，当我们发现，访问用的article_slug 和现在的article_slug不一样的时候，重定向（301）跳转到新的网址！
+
+再次修改 new/views.py 来实现这个功能
+...
+from django.shortcuts import redirect
+...
+
+def article_detail(request, pk, article_slug):
+    article = Article.objects.get(pk=pk)
+
+    if article_slug != article.slug:
+        return redirect(article, permanent=True)
+
+    return render(request, 'news/article.html', {'article': article})
+
+django.shortcuts.redirect 是一个比较方便的函数(详情)：
+
+1. 传递一个网址的时候，跳转到网址：redirect('http://www.ziqiangxuetang.com') 跳转到自强学堂首页
+
+Django 1.7 版本开始可以接收相对路径：redirect('/django/') 跳转到 Django 教程栏目 下
+
+2. 传递一个 Model object 的时候，自动调用object的 get_absolute_url 函数获取网址，上面就是一个这样的例子。
+
+
+news/models.py
+class Article(models.Model):
+    ...
+    def get_absolute_url(self):
+        return reverse('article', args=(self.pk, self.slug))
+    ....
+
+更行了上面的更改之后我们修复了之前的bug，自己再访问网站试试吧！
+
+QQ20150730-1@2x.png
+
+至此代码：zip 下载    github地址
+
+今天就写到这里吧，有能力的同学可以尝试把这些内容写一个单元测试。
+
+
+
+
+
+
+
+2.10 完善首页的显示功能
+
+我们前面的设计都是所有的栏目都显示在首页，但是如果我们不想某些栏目在首页显示呢？
+
+还有我们做一个导航，导航的内容也是来自数据，哪些加进导航，哪些不加呢？
+
+假如我们在模板中写死栏目，这样做显然不好，更改不方便，后面每次想改都得改模板。
+
+
+我们可以在栏目数据表中加一些字段 首页是否显示，导航是否显示。
+
+news/models.py
+...
+
+class Column(models.Model):
+    name = models.CharField('栏目名称', max_length=256)
+    slug = models.CharField('栏目网址', max_length=256, db_index=True)
+    intro = models.TextField('栏目简介', default='')
+
+    nav_display = models.BooleanField('导航显示', default=False)
+    home_display = models.BooleanField('首页显示', default=False)
+
+...
+
+同步更改到数据库中：
+python manage.py makemigrations news
+
+输出：
+
+Migrations for 'news':
+
+  0003_auto_20150731_1405.py:
+
+    - Add field home_display to column
+
+    - Add field nav_display to column
+
+    - Alter field content on article
+
+
+应用更改：
+python manage.py migrate news
+
+输出：
+
+Operations to perform:
+
+  Synchronize unmigrated apps: staticfiles, DjangoUeditor, messages
+
+  Apply all migrations: admin, news, contenttypes, auth, sessions
+
+Synchronizing apps without migrations:
+
+  Creating tables...
+
+    Running deferred SQL...
+
+  Installing custom SQL...
+
+Running migrations:
+
+  Rendering model states... DONE
+
+  Applying news.0003_auto_20150731_1405... OK
+
+
+我们想在后面去操作，哪些栏目在首页显示，哪些在导航上显示：
+
+
+news/admin.py
+class ColumnAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'intro', 'nav_display', 'home_display')
+
+此时后面已经可以修改这些属性了，但是页面上的显示我们还要进行一些更改：
+
+
+news/views.py
+def index(request):
+    home_display_columns = Column.objects.filter(home_display=True)
+    nav_display_columns = Column.objects.filter(nav_display=True)
+
+    return render(request, 'index.html', {
+        'home_display_columns': home_display_columns,
+        'nav_display_columns': nav_display_columns,
+    })
+
+
+templates/index.html
+
+将 columns 改成 home_display_columns
+{% extends "base.html" %}
+
+{% block title %} 首页 {% endblock title %}
+
+
+{% block content %}
+<ul>
+    {% for column in  home_display_columns %}
+        <li>
+            <a href="{{ column.get_absolute_url }}"> {{ column.name }} </a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock content %}
+
+导航要显示在每个页面上，我们更改 base.html
+
+base.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,Chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}欢迎光临{% endblock title %} - 自强学堂</title>
+
+    <!-- Bootstrap -->
+    <link href="http://apps.bdimg.com/libs/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- 引入下面两个库让 IE8 支持 HTML5 元素 -->
+    <!-- 警告: Respond.js 通过 file:// 浏览的时候不能正常工作！-->
+    <!--[if lt IE 9]>
+      <script src="http://apps.bdimg.com/libs/html5shiv/3.7/html5shiv.min.js"></script>
+      <script src="http://apps.bdimg.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <style type="text/css">
+    body {
+        padding-top: 60px;
+    }
+    </style>
+    {% block css %}
+
+    {% endblock css %}
+
+    {% block js %}
+
+    {% endblock js %}
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div>
+      <div>
+         <button type="button" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+         <span>Toggle navigation</span>
+         <span></span>
+         <span></span>
+         <span></span>
+         </button>
+         <span><a href="/">自强学堂</a></span>
+      </div>
+
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          {% for column in nav_display_columns %}
+              <li><a href="{{ column.get_absolute_url }}">{{ column.name }}</a></li>
+          {% endfor %}
+        </ul>
+    </div>
+    </nav>
+
+    <div class="row clearfix">
+        <div>
+            {% block content %}
+                <h1>自强 新闻网</h1>
+            {% endblock content %}
+        </div>
+    </div>
+
+    <div class="row clearfix" style="padding-top: 20px;">
+      <div>
+       <div class="well well-sm">
+        <div style="text-align:center;">
+         <a href="/aboutus/disclaimer.html">免责声明</a> |
+         <a href="/aboutus/index.html">关于我们</a>
+        </div>
+        <div>
+         自强学堂为非盈利站点，提供的内容仅用于学习和培训，我们不能保证内容一定正确。通过使用本站进行学习随之而来的风险与本站无关。当使用本站时，代表您已接受了本站的使用条款和隐私条款。 版权所有，保留一切权利。自强学堂的所有内容仅供测试，是以学习知识和分享知识为目的，对任何法律问题及风险不承担任何责任。
+        </div>
+        <div style="padding-top:10px; text-align: center">
+          自强学堂是用<a href="https://www.djangoproject.com/" target="_blank" rel="nofollow">Django</a>技术开发的站点，托管在<a href="http://bce.baidu.com/" target="_blank" rel="nofollow">百度开放云</a>平台<br>
+
+          Copyright &copy; 2014 Powered by 自强学堂 All Rights Reserved.
+         <a href="http://www.miitbeian.gov.cn/" rel="nofollow" target="_blank">吉ICP备13002477号-1</a>
+        </div>
+       </div>
+      </div>
+    </div>
+
+    <script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://apps.bdimg.com/libs/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+    {% include "baidutongji.html" %}
+  </body>
+</html>
+
+我们文章网站后台，修改一些栏目为首页和导航显示：
+
+QQ20150731-1@2x.png
+
+我们访问首页，可以看到：
+
+QQ20150731-2@2x.png
+
+我们点进去【社会新闻】后发现，导航上的栏目导航没有了，如果想每个页面上都有导航的 nav_display_columns 变量的话，是不是每个视图最后都得在字典中加上这个值呢？
+
+显然不是，有一个东西叫 上下文渲染器 （context processor)
+
+
+我们新建一个 news/nav_processor.py
+from .models import Column
+
+nav_display_columns = Column.objects.filter(nav_display=True)
+
+
+def nav_column(request):
+    return {'nav_display_columns': nav_display_columns}
+
+
+修改 minicms/settings.py，把我们写的 context processor 加入context_processors
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'news.nav_processor.nav_column',  # 新加入的这一行
+            ],
+        },
+    },
+]
+
+我们再访问网站的时候，是不是发现栏目页也可以显示导航了呢？
+
+今天的教程就到这里吧，zip 下载    github 地址
+
