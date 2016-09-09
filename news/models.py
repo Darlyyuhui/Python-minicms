@@ -31,9 +31,10 @@ class Column(models.Model):
 
 @python_2_unicode_compatible
 class Photo(models.Model):
-
+    name = models.CharField(u'图片名称', max_length=256)
     image = models.FileField(u'图片', upload_to='Images', max_length=100)
-
+    def __str__(self):
+        return self.name
     class Meta:
         verbose_name = '图片路径'
         verbose_name_plural = '图片路径'
