@@ -33,4 +33,18 @@ def article_detail(request,pk,article_slug):
     article = Article.objects.get(pk=pk)
     if article_slug !=article.slug:
         return redirect(article,permanent=True)
-    return render(request,'news/article.html',{'article':article})
+    try:
+        previous_page=Article.objects.get(pk=int(article.id)-1).get_absolute_url()
+    except:
+        previous_page = None
+    try:
+        next_page = Article.objects.get(pk=int(article.id) + 1).get_absolute_url()
+    except:
+        next_page = None
+    articles = Article.objects.filter(keyword__contains=article.keyword)
+    return render(request,'news/article.html',{
+        'article':article,'column':article.column.all()[0],
+        'previous_page':previous_page,
+        'next_page':next_page,
+        'recommend':articles,
+    })

@@ -31,21 +31,23 @@ class Column(models.Model):
 
 @python_2_unicode_compatible
 class Article(models.Model):
-    column = models.ManyToManyField(Column,verbose_name='归属栏目')
+    column = models.ManyToManyField(Column, verbose_name = '归属栏目')
 
     title = models.CharField(u'标题',max_length=256)
     slug = models.CharField(u'网址',max_length=256)
 
     author = models.ForeignKey('auth.User',blank=True,null=True,verbose_name='作者')
+    keyword = models.CharField(u'关键字', max_length=256,default='')
     content = UEditorField(u'内容',height=300,width=1000,
                            default=u'',blank=True,imagePath="uploads/images/",
                            toolbars='besttome',filePath='uploads/files/')
         #models.TextField(u'内容',default='',blank=True)
-    image = models.FileField(u'图片路径',upload_to=None, max_length=100)
+    image = models.FileField(u'图片路径',upload_to='Images', max_length=100)
     published = models.BooleanField(u'正式发布',default=True)
 
     pub_date = models.DateTimeField(u'发表时间',auto_now_add=True,editable=True)
     update_time = models.DateTimeField(u'更新时间',auto_now=True,null=True)
+
 
     def __str__(self):
         return  self.title

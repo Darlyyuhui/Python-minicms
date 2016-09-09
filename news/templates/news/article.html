@@ -4,13 +4,10 @@
 {% endblock title %}
 {% block content %}
 
-<h1 align="center">{{ article.title }}</h1>
-
-<div style="margin-right: 20px" id="author" align="center">
-    <p>
-        <font color="#deb887">作者：{{ article.author }}&nbsp&nbsp</font>
-        发布时间： {{ article.pub_date}}
-    </p>
+<div style="margin: 20px" id="author" align="center">
+    <h1>{{ article.title }}</h1>
+    <br>
+    <font>{{ column }}&nbsp&nbsp{{ article.author }}提供&nbsp&nbsp {{ article.pub_date}}</font>
 </div>
  <div style="margin: 20px" align="center">
      <img src="http://localhost:8000/media/{{article.image}}">
@@ -18,6 +15,24 @@
 <div style="width: 80%" align="center">
     {{ article.content }}
 </div>
+
+<div align="center">
+    {% if not previous_page%}
+    {% else %}
+    <span align="left">
+        <a href="{{previous_page}}">上一页</a>
+    </span>
+    {% endif %}
+    {% if not next_page%}
+    {% else %}
+    <span align="right">
+        <a href="{{next_page}}">下一页</a>
+    </span>
+    {% endif %}
+</div>
+
+<hr>
+<!--推荐新闻 数量未知，可进行扩展-->
 
 
 {% endblock content %}

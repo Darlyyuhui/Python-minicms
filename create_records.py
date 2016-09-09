@@ -72,9 +72,9 @@ s="一乙二十丁厂七卜八人入儿匕几九刁了刀力乃又三干于亏�
   "覆瞻蹦嚣镰翻鳍鹰瀑襟璧戳孽警蘑藻攀曝蹲蹭蹬巅簸簿蟹颤靡癣瓣羹鳖爆疆鬓壤馨耀躁蠕嚼嚷巍籍鳞魔糯灌譬蠢霸露霹躏黯髓赣囊镶瓤罐矗"
 
 ss = "abcdefghijklmnopqrstuvwxyz."
+
+key = "洗髓房地产"
 def main():
-
-
     for column_name, url,column_intro in getColumns():
         c = Column.objects.get_or_create(name=column_name, slug=url,intro = column_intro)[0]
         # 创建 40 篇新闻
@@ -84,13 +84,14 @@ def main():
                 slug='{}'.format(getStr(ss,10,15)),
                 author_id = random.randint(2,3),
                 content='{}'.format(getStr(s,200,400)),
+                keyword = '{},{}'.format(getStr(key,2,4),getStr(key,2,4)),
             )[0]
             article.column.add(c)
 
 def getColumns():
     columns = []
-    for i in range(2):
-        columns.append((getStr(s,2,2)+'新闻',getStr(ss,4,8),getStr(s,10,20)))
+    for i in range(1):
+        columns.append((getStr(s,2,2)+'新闻',getStr(ss,4,8),getStr(s,10,15)))
     print(columns)
     return columns
 
