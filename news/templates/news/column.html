@@ -8,12 +8,12 @@
 <p>{{column.name}}</p>
 <p>简介：{{ column.intro }}</p>
 <p>列表：</p>
-<ul>
+<ol align="center">
     {% for article in column.article_set.all %}
     <li>
         <a href="{{ article.get_absolute_url }}" >{{ article.title }}</a>
     </li>
     {% endfor %}
-</ul>
+</ol>
 还需要完善
 {% endblock content %}

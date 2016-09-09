@@ -30,6 +30,7 @@ def column_detail(request,column_slug):
     return render(request,'news/column.html',{'column':column})
 
 def article_detail(request,pk,article_slug):
+    host = request.get_host()
     article = Article.objects.get(pk=pk)
     if article_slug !=article.slug:
         return redirect(article,permanent=True)
@@ -47,4 +48,5 @@ def article_detail(request,pk,article_slug):
         'previous_page':previous_page,
         'next_page':next_page,
         'recommend':articles,
+        'host':host,
     })

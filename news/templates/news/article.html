@@ -96,13 +96,14 @@ $(document).ready(function(){
     <b>{{ column }}&nbsp{{ article.author }}提供&nbsp{{ article.pub_date}}</b>
     </div>
 </div>
- <div align="center">
-     <img src="http://localhost:8000/media/{{article.image}}"style="width: 200px;height: 200px">
- </div>
-<div style="width: 80%" align="center" class="content">
-    <p>{{ article.content }}</p>
+    <div align="center">
+     <div align="center">
+         <img src="http://{{ host }}/media/{{article.image}}" style="width: 50%;text-align: center">
+     </div>
+    <div style="padding: 10px;width: 50%; text-align: left"  class="content">
+        <p>{{ article.content }}</p>
+    </div>
 </div>
-
 <div align="center">
     {% if not previous_page%}
     {% else %}
@@ -137,7 +138,7 @@ $(document).ready(function(){
             <li>
             <a href="{{ art.get_absolute_url }}">
                 <div>
-                <img src="http://localhost:8000/media/{{art.image}}" style="width: 220px;height: 105px">
+                <img src="http://{{ host }}/media/{{art.image}}" style="width: 220px;height: 105px">
                 </div>
                 <div align="center">
                 <span>{{art}}</span>
