@@ -90,10 +90,10 @@ $(document).ready(function(){
 {% block content %}
 <div id="title">
     <div class="titles"  align="center">
-    <b>{{ article.title }}</b>
+    <h1>{{ article.title }}</h1>
     </div>
     <div class="content" align="center">
-    <b>{{ column }}&nbsp{{ article.author }}提供&nbsp{{ article.pub_date}}</b>
+    <b><a href="{{ column.get_absolute_url }}">{{ column }}</a>&nbsp{{ article.author }}提供&nbsp{{ article.pub_date}}</b>
     </div>
 </div>
     <div align="center">
