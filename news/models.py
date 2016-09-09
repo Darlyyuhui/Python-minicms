@@ -30,9 +30,18 @@ class Column(models.Model):
         ordering = ['name'] #按照哪个栏目排序
 
 @python_2_unicode_compatible
+class Photo(models.Model):
+
+    image = models.FileField(u'图片', upload_to='Images', max_length=100)
+
+    class Meta:
+        verbose_name = '图片路径'
+        verbose_name_plural = '图片路径'
+
+@python_2_unicode_compatible
 class Article(models.Model):
     column = models.ManyToManyField(Column, verbose_name = '归属栏目')
-
+    photo = models.ManyToManyField(Photo,verbose_name = '图片')
     title = models.CharField(u'标题',max_length=256)
     slug = models.CharField(u'网址',max_length=256)
 

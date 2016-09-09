@@ -49,4 +49,5 @@ def article_detail(request,pk,article_slug):
         'next_page':next_page,
         'recommend':articles,
         'host':host,
+        'photo':article.photo.all(),
     })

@@ -96,14 +96,24 @@ $(document).ready(function(){
     <b><a href="{{ column.get_absolute_url }}">{{ column }}</a>&nbsp{{ article.author }}提供&nbsp{{ article.pub_date}}</b>
     </div>
 </div>
+
     <div align="center">
-     <div align="center">
-         <img src="http://{{ host }}/media/{{article.image}}" style="width: 50%;text-align: center">
-     </div>
-    <div style="padding: 10px;width: 50%; text-align: left"  class="content">
-        <p>{{ article.content }}</p>
+        {% if not photo %}
+            <div align="center">
+                 <img src="http://{{ host }}/media/{{article.image}}" style="width: 50%;text-align: center">
+             </div>
+
+        {% else %}
+            {% for pho in photo %}
+             <div align="center">
+                 <img src="http://{{ host }}/media/{{pho.image}}" style="width: 50%;text-align: center">
+             </div>
+            {% endfor %}
+        {% endif %}
+        <div style="padding: 10px;width: 50%; text-align: left"  class="content">
+            <p>{{ article.content }}</p>
+        </div>
     </div>
-</div>
 <div align="center">
     {% if not previous_page%}
     {% else %}
