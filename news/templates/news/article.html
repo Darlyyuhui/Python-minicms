@@ -1,38 +1,164 @@
+<style>
+    body,ul,li{ padding:0; margin:0;}
+    ul,li{ list-style:none;}
+    img{ border:none;}
+    a{ color:#6cf;}
+    a:hover{ color:#84B263;}
+    .box{ width:980px; margin:0 auto; position:relative; overflow:hidden; _height:100%;}
+    .picbox{ width:980px; height:130px; overflow:hidden; position:relative;}
+    .piclist{ height:130px;position:absolute; left:0px; top:0px}
+    .piclist li{ background:#eee; margin-right:20px; padding:5px; float:left;}
+    .swaplist{ position:absolute; left:-3000px; top:0px}
+    .og_prev,.og_next{ width:30px; height:50px; background:#84B263 no-repeat; background:#84B263 no-repeat\9; position:absolute; top:33px; z-index:99; cursor:pointer;filter:alpha(opacity=70); opacity:0.7;}
+    .og_prev{ background-position:0 -60px; left:4px;}
+    .og_next{ background-position:0 0; right:4px;}
+</style>
+<script type="text/javascript" src="/media/jquery/jquery-1.12.3.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(e) {
+	/***不需要自动滚动，去掉即可***/
+//	time = window.setInterval(function(){
+//		$('.og_next').click();
+//	},3000);
+	/***不需要自动滚动，去掉即可***/
+	linum = $('.mainlist li').length;//图片数量
+	w = linum * 250;//ul宽度
+	$('.piclist').css('width', w + 'px');//ul宽度
+	$('.swaplist').html($('.mainlist').html());//复制内容
+	$('.og_next').click(function(){
+		if($('.swaplist,.mainlist').is(':animated')){
+			$('.swaplist,.mainlist').stop(true,true);
+		}
+		if($('.mainlist li').length>4){//多于4张图片
+			ml = parseInt($('.mainlist').css('left'));//默认图片ul位置
+			sl = parseInt($('.swaplist').css('left'));//交换图片ul位置
+			if(ml<=0 && ml>w*-1){//默认图片显示时
+				$('.swaplist').css({left: '1000px'});//交换图片放在显示区域右侧
+				$('.mainlist').animate({left: ml - 1000 + 'px'},'slow');//默认图片滚动
+				if(ml==(w-1000)*-1){//默认图片最后一屏时
+					$('.swaplist').animate({left: '0px'},'slow');//交换图片滚动
+				}
+			}else{//交换图片显示时
+				$('.mainlist').css({left: '1000px'})//默认图片放在显示区域右
+				$('.swaplist').animate({left: sl - 1000 + 'px'},'slow');//交换图片滚动
+				if(sl==(w-1000)*-1){//交换图片最后一屏时
+					$('.mainlist').animate({left: '0px'},'slow');//默认图片滚动
+				}
+			}
+		}
+	})
+	$('.og_prev').click(function(){
+
+		if($('.swaplist,.mainlist').is(':animated')){
+			$('.swaplist,.mainlist').stop(true,true);
+		}
+		if($('.mainlist li').length>4){
+			ml = parseInt($('.mainlist').css('left'));
+			sl = parseInt($('.swaplist').css('left'));
+			if(ml<=0 && ml>w*-1){
+				$('.swaplist').css({left: w * -1 + 'px'});
+				$('.mainlist').animate({left: ml + 1000 + 'px'},'slow');
+				if(ml==0){
+					$('.swaplist').animate({left: (w - 1000) * -1 + 'px'},'slow');
+				}
+			}else{
+				$('.mainlist').css({left: (w - 1000) * -1 + 'px'});
+				$('.swaplist').animate({left: sl + 1000 + 'px'},'slow');
+				if(sl==0){
+					$('.mainlist').animate({left: '0px'},'slow');
+				}
+			}
+		}
+	})
+});
+$(document).ready(function(){
+	$('.og_prev,.og_next').hover(function(){
+			$(this).fadeTo('fast',1);
+		},function(){
+			$(this).fadeTo('fast',0.7);
+	})
+})
+</script>
+
+<style type="text/css">
+    .footser p{font:normal 16px/2em '新宋体';text-align:center;}
+</style>
 {% extends "base.html" %}
 {% block title %}
 {{ article.title }}
 {% endblock title %}
 {% block content %}
-
-<div style="margin: 20px" id="author" align="center">
-    <h1>{{ article.title }}</h1>
-    <br>
-    <font>{{ column }}&nbsp&nbsp{{ article.author }}提供&nbsp&nbsp {{ article.pub_date}}</font>
+<div id="title">
+    <div class="titles"  align="center">
+    <b>{{ article.title }}</b>
+    </div>
+    <div class="content" align="center">
+    <b>{{ column }}&nbsp{{ article.author }}提供&nbsp{{ article.pub_date}}</b>
+    </div>
 </div>
- <div style="margin: 20px" align="center">
-     <img src="http://localhost:8000/media/{{article.image}}">
+ <div align="center">
+     <img src="http://localhost:8000/media/{{article.image}}"style="width: 200px;height: 200px">
  </div>
-<div style="width: 80%" align="center">
-    {{ article.content }}
+<div style="width: 80%" align="center" class="content">
+    <p>{{ article.content }}</p>
 </div>
 
 <div align="center">
     {% if not previous_page%}
     {% else %}
     <span align="left">
-        <a href="{{previous_page}}">上一页</a>
+        <a href="{{previous_page}}">上一页</a>&nbsp&nbsp
     </span>
     {% endif %}
     {% if not next_page%}
     {% else %}
     <span align="right">
-        <a href="{{next_page}}">下一页</a>
+        &nbsp&nbsp<a href="{{next_page}}">下一页</a>
     </span>
     {% endif %}
 </div>
 
 <hr>
 <!--推荐新闻 数量未知，可进行扩展-->
-
-
+<div class="footser">
+    <p>推荐新闻：</p>
+</div>
+{% if not recommend%}
+    <div align="center">
+        暂无数据
+    </div>
+{% else %}
+<div class="box">
+	<div class="picbox">
+		<ul class="piclist mainlist">
+        {% for art in recommend %}
+        {% ifequal art.title article.title %}
+        {% else %}
+            <li>
+            <a href="{{ art.get_absolute_url }}">
+                <div>
+                <img src="http://localhost:8000/media/{{art.image}}" style="width: 220px;height: 105px">
+                </div>
+                <div align="center">
+                <span>{{art}}</span>
+                </div>
+            </a>
+            </li>
+        {% endifequal %}
+        {% endfor %}
+        </ul>
+        <ul class="piclist swaplist"></ul>
+	</div>
+	<div class="og_prev"></div>
+	<div class="og_next"></div>
+{% endif %}
 {% endblock content %}
+
+
+
+
+
+
+
+
+
