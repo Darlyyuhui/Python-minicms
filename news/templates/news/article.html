@@ -112,8 +112,8 @@ $(document).ready(function(){
                 </div>
             {% endfor %}
         {% endif %}
-        <div style="padding: 10px;width: 50%; text-align: left"  class="content">
-            <p>{{ article.content }}</p>
+        <div style="padding: 10px;width: 50%; text-align: left"  class="content" >
+            <p escape="false" >{{ article.content }}</p>
         </div>
     </div>
 <div align="center">
@@ -130,41 +130,37 @@ $(document).ready(function(){
     </span>
     {% endif %}
 </div>
-
-<hr>
 <!--推荐新闻 数量未知，可进行扩展-->
-<div class="footser">
-    <p>推荐新闻：</p>
-</div>
-{% if not recommend%}
-    <div align="center">
-        暂无数据
-    </div>
-{% else %}
-<div class="box">
-	<div class="picbox">
-		<ul class="piclist mainlist">
-        {% for art in recommend %}
-        {% ifequal art.title article.title %}
-        {% else %}
-            <li>
-            <a href="{{ art.get_absolute_url }}">
-                <div>
-                <img src="http://{{ host }}/media/{{art.image}}" style="width: 220px;height: 105px">
-                </div>
-                <div align="center">
-                <span>{{art}}</span>
-                </div>
-            </a>
-            </li>
-        {% endifequal %}
-        {% endfor %}
-        </ul>
-        <ul class="piclist swaplist"></ul>
-	</div>
-	<div class="og_prev"></div>
-	<div class="og_next"></div>
-{% endif %}
+    {% if recommend0 %}
+    {% else %}
+        <hr>
+        <div class="footser">
+        <p>推荐新闻：</p>
+        </div>
+        <div class="box">
+        <div class="picbox">
+            <ul class="piclist mainlist">
+            {% for art in recommend %}
+            {% ifequal art.title article.title %}
+            {% else %}
+                <li>
+                <a href="{{ art.get_absolute_url }}">
+                    <div>
+                    <img src="http://{{ host }}/media/{{art.image}}" style="width: 220px;height: 105px">
+                    </div>
+                    <div align="center">
+                    <span>{{art}}</span>
+                    </div>
+                </a>
+                </li>
+            {% endifequal %}
+            {% endfor %}
+            </ul>
+            <ul class="piclist swaplist"></ul>
+        </div>
+        <div class="og_prev"></div>
+        <div class="og_next"></div>
+    {% endif %}
 {% endblock content %}
 
 

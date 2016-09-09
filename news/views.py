@@ -43,11 +43,23 @@ def article_detail(request,pk,article_slug):
     except:
         next_page = None
     articles = Article.objects.filter(keyword__contains=article.keyword)
+
+    if len(articles)>1:
+        return render(request, 'news/article.html', {
+            'article': article, 'column': article.column.all()[0],
+            'previous_page': previous_page,
+            'next_page': next_page,
+            'recommend': articles,
+            'recommend0': False,
+            'host': host,
+            'photo': article.photo.all(), })
+
     return render(request,'news/article.html',{
         'article':article,'column':article.column.all()[0],
         'previous_page':previous_page,
         'next_page':next_page,
         'recommend':articles,
+        'recommend0':True,
         'host':host,
         'photo':article.photo.all(),
     })
