@@ -80,6 +80,10 @@ class Video(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('video',args=(self.pk,))
+
+
     class Meta:
         verbose_name = '视频集合'
         verbose_name_plural = '视频集合'

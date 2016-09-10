@@ -38,6 +38,7 @@ sitemaps = {
 urlpatterns = [
     url(r'^$',views.index,name='index'),
     url(r'^user/$',views.userinfo,name='userinfo'),
+    url(r'^video/(?P<pk>[^/]+)/$',views.video,name='video'),
     url(r'^admin/', admin.site.urls),
     url(r'^ueditor/', include(DjangoUeditor_urls)),
     url(r'^column/(?P<column_slug>[^/]+)/$',views.column_detail,name='column'),

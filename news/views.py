@@ -8,7 +8,8 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
 #首页 index   栏目 column    文章详情   article
-from news.models import Column, Article
+from news.models import Column, Article, Video
+
 
 def userinfo(request):
     name = '123'
@@ -18,12 +19,17 @@ def userinfo(request):
 def index(request):
     home_display_columns = Column.objects.filter(home_display=True)
     nav_display_columns = Column.objects.filter(nav_display=True)
+    videos = Video.objects.filter()[0]
     return render(request, 'index.html', {
         'home_display_columns': home_display_columns,
         'nav_display_columns': nav_display_columns,
+        'video': videos,
     })
    #columns = Column.objects.all()
     #return render(request,'index.html',{'columns':columns})
+def video(request,pk):
+    videos = Video.objects.filter()
+    return render(request, 'news/video.html', {'video': videos})
 
 def column_detail(request,column_slug):
     column = Column.objects.get(slug=column_slug)
