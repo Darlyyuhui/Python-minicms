@@ -72,6 +72,17 @@ class Article(models.Model):
         verbose_name = '新闻文章'
         verbose_name_plural = '新闻文章'
 
+@python_2_unicode_compatible
+class Video(models.Model):
+    name = models.CharField(u'视频名称', max_length=256)
+    path = models.CharField(u'视频路径', max_length=256)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = '视频集合'
+        verbose_name_plural = '视频集合'
 
 
 

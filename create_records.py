@@ -6,7 +6,9 @@ Created by zhangyh2 on 2016/9/7
 '''
 from django.utils.crypto import random
 from minicms.wsgi import *
-from news.models import Column, Article
+from news import findComputer
+from news.models import Column, Article, Video
+
 s="一乙二十丁厂七卜八人入儿匕几九刁了刀力乃又三干于亏工土士才下寸大丈与万上小口山巾千乞川亿个夕久么勺凡丸及广亡" \
   "门丫义之尸己已巳弓子卫也女刃飞习叉马乡丰王开井天夫元无云专丐扎艺木五支厅不犬太区历歹友尤匹车巨牙屯戈比互切瓦" \
   "止少曰日中贝冈内水见午牛手气毛壬升夭长仁什片仆化仇币仍仅斤爪反介父从仑今凶分乏公仓月氏勿欠风丹匀乌勾凤六文亢" \
@@ -98,8 +100,31 @@ def getColumns():
 def getStr(st,x,y):
     return ''.join(str(i)for i in random.sample(st, random.randint(x,y)))
 
+def setVideo(src):
+    # data = {'[ZERO动漫下载]火影忍者135.rmvb': 'D:\\动漫\\火影忍者\\101-200\\[ZERO动漫下载]火影忍者135.rmvb'}
+    data = findComputer.SearchALLFile(src)
+    lenth = len(data)
+    print(lenth)
+    i = 0
+    oldper = 0
+    for pair in data.keys():
+        Video.objects.get_or_create(
+            name='{}'.format(pair),
+            path='{}'.format(data.get(pair)),
+        )[0]
+        i += 1
+        percent = int(i * 100 / lenth)
+        if percent > oldper:
+            oldper = percent
+            print('已经插入数据库' + str(oldper) + "%")
+
 if __name__ == '__main__':
-    main()
+    # main()
     #print(str(len(s))+"---"+str(len(ss)))
     #getColumns()
+    '''
+    将电影信息添加进数据库
+    '''
+    setVideo('rmvb')
 print("Done!")
+
