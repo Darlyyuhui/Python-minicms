@@ -43,6 +43,8 @@ urlpatterns = [
     url(r'^ueditor/', include(DjangoUeditor_urls)),
     url(r'^column/(?P<column_slug>[^/]+)/$',views.column_detail,name='column'),
     url(r'^news/(?P<pk>\d+)/(?P<article_slug>[^/]+)/$',views.article_detail,name='article'),
+    url(r'^api/$',views.api,name='api'),
+    url(r'^api/(?P<pk>\d+)/$',views.apiPk,name='api'),
     # 但是这样生成的 sitemap，如果网站内容太多就很慢，很耗费资源，可以采用分页的功能：
     #url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps},
         #name='django.contrib.sitemaps.views.sitemap'),
